@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace Client
+namespace ApertureScience
 {
-    class Program
+    class Client
     {
         static void Main(string[] args)
         {
