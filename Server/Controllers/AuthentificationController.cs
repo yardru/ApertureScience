@@ -14,11 +14,11 @@ namespace ApertureScience
     [Route("api/[controller]")]
     public class AuthentificationController : Controller
     {
-        private readonly ServerContext dataBase;
+        private readonly EmployeesManager employees;
 
-        public AuthentificationController(ServerContext context)
+        public AuthentificationController(EmployeesManager context)
         {
-            dataBase = context;
+            employees = context;
         }
 
         [HttpPost("/token")]
@@ -52,7 +52,7 @@ namespace ApertureScience
 
         private ClaimsIdentity GetIdentity(string email, string password)
         {
-            var user = dataBase.GetEmployeesAsync().Result.FirstOrDefault(emp => emp.Email == email && emp.Password == password);
+            var user = employees.GetAll().FirstOrDefault(emp => emp.Email == email && emp.Password == password);
 
             if (user != null)
             {

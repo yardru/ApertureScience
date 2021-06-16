@@ -14,24 +14,13 @@ namespace ApertureScience
     [ApiController]
     public class EmployeesController : AuthorizedBaseController
     {
-        private readonly ServerContext dataBase;
-        IAuthorizationService _authorizationService;
+        private readonly EmployeesManager employees;
 
-        public EmployeesController(ServerContext context, IAuthorizationService authorizationService)
+        public EmployeesController(EmployeesManager context, IAuthorizationService authorizationService)
         {
-            dataBase = context;
-            _authorizationService = authorizationService;
+            employees = context;
         }
 
-        // GET: api/Employees
-        //[JsonReduceResultFilter]
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Object>>> GetEmployee()
-        {
-            return Ok((await dataBase.GetEmployeesAsync()).Select(employee => employee.Reduce()));
-        }
-
-        // POST: api/Employees
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult<Object>> PostEmployee(Employee employee)
@@ -39,42 +28,45 @@ namespace ApertureScience
             if (UserRole <= employee.Role)
                 return Forbid();
 
-            if (employee.PhotoNamesList.Count > 0)
-                return BadRequest(new { PhotoNamesList = "To change photos use .../{id}/photos" });
+            if ((employees.GetAll().Any(other => other.Email == employee.Email)))
+                return BadRequest("Email should be unique");
 
-            await dataBase.AddEmployeeAsync(employee);
+            await employees.AddAsync(employee);
             return CreatedAtAction("GetEmployee", new { id = employee.Id }, employee.Reduce());
         }
 
-        // GET: api/Employees/5
-        //[JsonReduceResultFilter]
+        [HttpGet]
+        public ActionResult<IEnumerable<Object>> GetEmployee()
+        {
+            return Ok(employees.GetAll().Select(employee => employee.Reduce()));
+        }
+
         [HttpGet("{id}")]
         public async Task<ActionResult<Object>> GetEmployee(int id)
         {
-            var employee = await dataBase.GetEmployeeAsync(id);
+            var employee = await employees.GetAsync(id);
             if (employee == null)
                 return NotFound();
 
             return employee.Reduce();
         }
 
+
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<ActionResult> PutEmployee(int id, Employee employee)
         {
-            /**/
-            var oldEmployee = await dataBase.GetEmployeeAsyncAsNoTracking(employee.Id);
-            
-            if (oldEmployee == null)
+            var oldRole = employees.GetRole(id);
+            if (oldRole == Employee.Roles.UNDEFINED)
                 return NotFound();
 
-            if ((UserId == employee.Id && UserRole != employee.Role) || UserRole <= oldEmployee.Role || UserRole <= employee.Role)
+            if ((UserId == employee.Id && UserRole != employee.Role) || UserRole <= oldRole || UserRole <= employee.Role)
                 return Forbid();
 
-            if (employee.PhotoNamesList.Count != oldEmployee.PhotoNamesList.Count || employee.PhotoNamesList.Any(pn => !oldEmployee.PhotoNamesList.Contains(pn)))
-                return BadRequest("To change photos use .../{id}/photos");
-            /**/
-            await dataBase.UpdateEmployeeAsync(employee);
+            if ((employees.GetAll().Any(other => (other.Email == employee.Email) && (other.Id != employee.Id))))
+                return BadRequest("Email should be unique");
+
+            await employees.UpdateAsync(employee);
             return NoContent();
         }
 
@@ -82,14 +74,14 @@ namespace ApertureScience
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteEmployee(int id)
         {
-            var employee = await dataBase.GetEmployeeAsyncAsNoTracking(id);
+            var employee = await employees.GetAsync(id);
             if (employee == null)
                 return NotFound();
 
             if (UserRole <= employee.Role)
                 return Forbid();
 
-            await dataBase.RemoveEmployeeAsync(employee);
+            await employees.RemoveAsync(employee);
 
             return NoContent();
         }

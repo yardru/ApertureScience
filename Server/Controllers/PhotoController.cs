@@ -16,54 +16,51 @@ namespace ApertureScience
     [ApiController]
     public class PhotoController : AuthorizedBaseController
     {
-        public PhotoController(ServerContext context, IWebHostEnvironment appEnvironment)
+        public PhotoController(EmployeesManager context, IWebHostEnvironment appEnvironment)
         {
-            dataBase = context;
-            _appEnvironment = appEnvironment;
+            employees = context;
+       }
+
+        [HttpGet]
+        public ActionResult<IEnumerable<Photo>> Get(int employeeId)
+        {
+            return Ok(PhotosManager.Photos(employeeId).Select(photo => photo.FileName));
         }
-        
+
         [HttpGet("{fileName}")]
         public ActionResult Get(int employeeId, string fileName)
         {
-            var proc = PhotoProcessor.GetProcessor(fileName);
+            var photo = PhotosManager.Photo(employeeId, fileName);
 
-            if (!proc.IsExists())
+            if (!PhotosManager.IsExists(photo))
                 return NotFound();
 
-            return File(proc.Get(), proc.ContentType);
+            return File(PhotosManager.Load(photo), photo.ContentType);
         }
 
         [HttpPost]
-        public async Task<ActionResult> Post(int employeeId, [FromForm] IFormFileCollection uploads)
+        public async Task<ActionResult> Post(int employeeId, [FromForm] IFormFileCollection _uploads)
         {
-            uploads = HttpContext.Request.Form.Files; /// WARNING!!! uploads from argument's don't have anything
-            var employee = await dataBase.GetEmployeeAsyncAsNoTracking(employeeId);
+
+            var uploads = HttpContext.Request.Form.Files; /// WARNING!!! uploads from argument's don't have anything
+            var role = employees.GetRole(employeeId);
+            if (role == Employee.Roles.UNDEFINED)
+                return NotFound();
 
             if (uploads == null || uploads.Count == 0)
                 return BadRequest();
 
-            if (employee == null)
-                return NotFound();
-
-            if (UserRole <= employee.Role && UserId != employee.Id)
+            if (UserRole <= role && UserId != employeeId)
                 return Forbid();
 
-            if (employee.PhotoNamesList.Count >= MAX_IMAGE_NUMBER)
-                return Conflict();
-
-            /**/
             foreach (var upload in uploads)
             {
-                var proc = PhotoProcessor.GetProcessor(upload.FileName);
-                if (!proc)
+                var photo = PhotosManager.Photo(employeeId, upload.FileName);
+                if (!photo)
                     return BadRequest();
 
-                await proc.Save(upload);
-                employee.PhotoNamesList.Append(proc.FileName);
+                await PhotosManager.Save(photo, upload);
             }
-            /**/
-
-            await dataBase.UpdateEmployeeAsync(employee);
 
             return Accepted();
         }
@@ -71,25 +68,18 @@ namespace ApertureScience
         [HttpDelete("{fileName}")]
         public async Task<ActionResult> Delete(int employeeId, string fileName)
         {
-            fileName = fileName.ToLower();
-            var employee = await dataBase.GetEmployeeAsyncAsNoTracking(employeeId);
+            var employee = await employees.GetAsync(employeeId);
             if (employee == null)
                 return NotFound();
 
             if (UserRole <= employee.Role && UserId != employee.Id)
                 return Forbid();
 
-            if (employee.PhotoNamesList.Remove(fileName))
-                await dataBase.UpdateEmployeeAsync(employee);
-
-            PhotoProcessor.GetProcessor(fileName).Delete();
+            PhotosManager.Delete(PhotosManager.Photo(employeeId, fileName));
 
             return NoContent();
         }
 
-        private readonly ServerContext dataBase;
-        private readonly IWebHostEnvironment _appEnvironment;
-
-        static private readonly int MAX_IMAGE_NUMBER = 3;
+        private readonly EmployeesManager employees;
     }
 }

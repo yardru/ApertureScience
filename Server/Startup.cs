@@ -59,7 +59,7 @@ namespace ApertureScience
             services.AddCors();
             services.AddControllers();
 
-            services.AddDbContext<ServerContext>(options =>
+            services.AddDbContext<EmployeesManager>(options =>
                     options.UseSqlServer(Configuration.GetConnectionString("ServerContext")));
         }
 
