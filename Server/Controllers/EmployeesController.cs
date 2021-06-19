@@ -5,20 +5,21 @@ using System.Threading.Tasks;
 using System.Web.Http.ModelBinding;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.EntityFrameworkCore;
 
 
 namespace ApertureScience
 {
-    [Route("employees")]
     [ApiController]
+    [ConfigurableRoute("Employees")]
     public class EmployeesController : AuthorizedBaseController
     {
         private readonly EmployeesManager employees;
 
-        public EmployeesController(EmployeesManager context, IAuthorizationService authorizationService)
+        public EmployeesController(EmployeesManager employees)
         {
-            employees = context;
+            this.employees = employees;
         }
 
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754

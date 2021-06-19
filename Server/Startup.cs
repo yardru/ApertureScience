@@ -29,38 +29,31 @@ namespace ApertureScience
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                     .AddJwtBearer(options =>
-                     {
-                         options.RequireHttpsMetadata = true;
-                         options.TokenValidationParameters = new TokenValidationParameters
-                         {
-                            // укзывает, будет ли валидироваться издатель при валидации токена
-                            ValidateIssuer = true,
-                            // строка, представляющая издателя
-                            ValidIssuer = AuthOptions.ISSUER,
+            AuthentificationOptions.ISSUER = Configuration["AuthentificationOptions:Issuer"] ?? "MyAuthServer";
+            AuthentificationOptions.AUDIENCE = Configuration["AuthentificationOptions:Audience"] ?? "MyAuthClient";
+            AuthentificationOptions.LIFETIME = int.Parse(Configuration["AuthentificationOptions:Lifetime"] ?? "1");
+            AuthentificationOptions.KEY = Configuration["AuthentificationOptions:Key"] ?? "mysupersecret_secretkey!123";
 
-                            // будет ли валидироваться потребитель токена
-                            ValidateAudience = true,
-                            // установка потребителя токена
-                            ValidAudience = AuthOptions.AUDIENCE,
-                            // будет ли валидироваться время существования
-                            ValidateLifetime = false,
-
-                            // установка ключа безопасности
-                            IssuerSigningKey = AuthOptions.GetSymmetricSecurityKey(),
-                            // валидация ключа безопасности
-                            ValidateIssuerSigningKey = true,
-                         };
-                     });
-
-            //services.AddSingleton<IAuthorizationHandler, EmployeeAuthorization>();
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+                {
+                    options.RequireHttpsMetadata = true;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidIssuer = AuthentificationOptions.ISSUER,
+                        ValidateAudience = true,
+                        ValidAudience = AuthentificationOptions.AUDIENCE,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = AuthentificationOptions.SECURITY_KEY,
+                        ValidateLifetime = false,
+                    };
+                });
 
             services.AddCors();
             services.AddControllers();
 
             services.AddDbContext<EmployeesManager>(options =>
-                    options.UseSqlServer(Configuration.GetConnectionString("ServerContext")));
+                    options.UseSqlServer(Configuration.GetConnectionString("EmployeesDatabase")));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -82,6 +75,14 @@ namespace ApertureScience
 
             app.UseEndpoints(endpoints =>
             {
+                var AuthentificationRoute = Configuration["Routs:Authentification"];
+                var EmployeesRoute = Configuration["Routs:Employees"];
+                var PhotoRoute = EmployeesRoute + "/{employeeId:int}/photos";
+
+                ConfigurableRoute.AddRoute("Authentification", AuthentificationRoute);
+                ConfigurableRoute.AddRoute("Employees", EmployeesRoute);
+                ConfigurableRoute.AddRoute("Photo", PhotoRoute);
+
                 endpoints.MapControllers();
             });
         }

@@ -12,14 +12,14 @@ using System.Threading.Tasks;
 
 namespace ApertureScience
 {
-    [Route("employees/{employeeId}/photos")]
     [ApiController]
+    [ConfigurableRoute("Photo")]
     public class PhotoController : AuthorizedBaseController
     {
-        public PhotoController(EmployeesManager context, IWebHostEnvironment appEnvironment)
+        public PhotoController(EmployeesManager employees)
         {
-            employees = context;
-       }
+            this.employees = employees;
+        }
 
         [HttpGet]
         public ActionResult<IEnumerable<Photo>> Get(int employeeId)

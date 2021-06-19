@@ -11,7 +11,7 @@ namespace ApertureScience
     {
         static public IEnumerable<Photo> Photos(int employeeId)
         {
-            return Directory.EnumerateFiles($"{PHOTOS_PATH}/{employeeId}").Select(fileName => Photo(employeeId, fileName));
+            return Directory.EnumerateFiles($"{PHOTOS_PATH}/{employeeId}").Select(fileName => Photo(employeeId, Path.GetFileName(fileName)));
         }
 
         static public Photo Photo(int employeeId, string fileName)
