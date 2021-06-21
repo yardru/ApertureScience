@@ -75,8 +75,8 @@ namespace ApertureScience
 
             app.UseEndpoints(endpoints =>
             {
-                var AuthentificationRoute = Configuration["Routs:Authentification"];
-                var EmployeesRoute = Configuration["Routs:Employees"];
+                var AuthentificationRoute = "api" + Configuration["Routs:Authentification"];
+                var EmployeesRoute = "api" + Configuration["Routs:Employees"];
                 var PhotoRoute = EmployeesRoute + "/{employeeId:int}/photos";
 
                 ConfigurableRoute.AddRoute("Authentification", AuthentificationRoute);
